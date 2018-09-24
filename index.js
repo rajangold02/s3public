@@ -12,6 +12,12 @@ exports.handler = (event, context) => {
         TopicArn: snoozeTopic
     };
     
+   
+        // Log the invoked function ARN and split to get Account ID
+    var arnNo = JSON.stringify(context.invokedFunctionArn).split(':')[4];
+
+
+    
     var bucketName = event.detail.requestParameters.bucketName;
     var publicPermissions = [];
     var eventType;
@@ -44,9 +50,8 @@ exports.handler = (event, context) => {
     
     if (publicPermissions.length != 0) {
         var userDetails = getUserDetails(event);
-        notification.Message = userDetails.user + (userDetails.agent || "") + " has just " + eventType + " "
-            + bucketName + " which now has public " + publicPermissions.join(" and ") + " access.\n";
-        console.log(notification.Message);
+ notification.Message = 'The following S3 bucket permission has been changed to public ' + publicPermissions.join(' and ') + ' access. \n\n' +   'IAM User Changed the Permission: ' + userDetails.user + (userDetails.agent || '') + '\n' + 'Bucket Name: ' + bucketName + '\n' + 'AWS Account ID: ' + arnNo  ;
+ console.log(notification.Message);
         snooze.publish(notification, function(err, data) {
             if (err) console.log(err, err.stack);
             else console.log("Successfully sent notification");

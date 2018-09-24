@@ -14,8 +14,9 @@ resource "aws_cloudtrail" "cloudtrail_log" {
   include_global_service_events = false
   cloud_watch_logs_role_arn     = "${aws_iam_role.logging_role.arn}"
   cloud_watch_logs_group_arn    = "${aws_cloudwatch_log_group.log_group.arn}"
+
   depends_on = [
-    "aws_s3_bucket_policy.logbucket_policy"
+    "aws_s3_bucket_policy.logbucket_policy",
   ]
 }
 
@@ -26,6 +27,7 @@ resource "aws_s3_bucket" "logbucket" {
 
 resource "aws_s3_bucket_policy" "logbucket_policy" {
   bucket = "${aws_s3_bucket.logbucket.id}"
+
   policy = <<POLICY
 {
     "Version": "2012-10-17",
@@ -63,8 +65,9 @@ resource "aws_cloudwatch_log_group" "log_group" {
 }
 
 resource "aws_iam_role" "logging_role" {
-  name                = "cloudwatch-logging-role-tf"
-  assume_role_policy  = <<POLICY
+  name = "cloudwatch-logging-role-tf"
+
+  assume_role_policy = <<POLICY
 {
   "Version": "2012-10-17",
   "Statement": [
@@ -82,8 +85,9 @@ POLICY
 }
 
 resource "aws_iam_role_policy" "logging_policy" {
-  name   = "cloudwatch-logging-policy-tf"
-  role   = "${aws_iam_role.logging_role.id}"
+  name = "cloudwatch-logging-policy-tf"
+  role = "${aws_iam_role.logging_role.id}"
+
   policy = <<POLICY
 {
   "Version": "2012-10-17",
@@ -117,7 +121,8 @@ POLICY
 # - this means the topic subscription is not managed in tf and we can't reference its arn
 
 resource "aws_sns_topic" "bucket_alerts" {
-  name = "s3-bucket-public-access-alert-tf"  
+  name = "s3-bucket-public-access-alert-tf"
+
   provisioner "local-exec" {
     command = "aws sns subscribe --topic-arn ${self.arn} --protocol email --notification-endpoint ${var.alert_email_address}"
   }
@@ -126,8 +131,9 @@ resource "aws_sns_topic" "bucket_alerts" {
 # create an execution role and policy for the lambda to publish to sns
 
 resource "aws_iam_role" "lambda_role" {
-  name                = "bucket-alert-lambda-execution-role-tf"
-  assume_role_policy  = <<POLICY
+  name = "bucket-alert-lambda-execution-role-tf"
+
+  assume_role_policy = <<POLICY
 {
   "Version": "2012-10-17",
   "Statement": [
@@ -144,8 +150,9 @@ POLICY
 }
 
 resource "aws_iam_role_policy" "lambda_policy" {
-  name   = "bucket-alert-lambda-execution-policy-tf"
-  role   = "${aws_iam_role.lambda_role.id}"
+  name = "bucket-alert-lambda-execution-policy-tf"
+  role = "${aws_iam_role.lambda_role.id}"
+
   policy = <<POLICY
 {
   "Version": "2012-10-17",
@@ -195,11 +202,13 @@ resource "aws_lambda_function" "bucket_alert_lambda" {
 # create cloudwatch event rule, target and permission to trigger lambda
 
 resource "aws_cloudwatch_event_rule" "lambda_trigger_rule" {
-  name             = "cloudwatch-lambda-putbucketacl-rule-tf"
+  name = "cloudwatch-lambda-putbucketacl-rule-tf"
+
   depends_on = [
-    "aws_lambda_function.bucket_alert_lambda"
+    "aws_lambda_function.bucket_alert_lambda",
   ]
-  event_pattern    = <<PATTERN
+
+  event_pattern = <<PATTERN
 {
   "source": [
     "aws.s3"
@@ -221,15 +230,15 @@ PATTERN
 }
 
 resource "aws_cloudwatch_event_target" "lambda_target" {
-  target_id   = "cloudwatch-event-lambda-target-tf"
-  rule        = "${aws_cloudwatch_event_rule.lambda_trigger_rule.name}"
-  arn         = "${aws_lambda_function.bucket_alert_lambda.arn}"
+  target_id = "cloudwatch-event-lambda-target-tf"
+  rule      = "${aws_cloudwatch_event_rule.lambda_trigger_rule.name}"
+  arn       = "${aws_lambda_function.bucket_alert_lambda.arn}"
 }
 
 resource "aws_lambda_permission" "allow_cloudwatch_event_permission" {
-  statement_id   = "AllowExecutionFromCloudWatch"
-  action         = "lambda:InvokeFunction"
-  function_name  = "${aws_lambda_function.bucket_alert_lambda.function_name}"
-  principal      = "events.amazonaws.com"
-  source_arn     = "${aws_cloudwatch_event_rule.lambda_trigger_rule.arn}"
+  statement_id  = "AllowExecutionFromCloudWatch"
+  action        = "lambda:InvokeFunction"
+  function_name = "${aws_lambda_function.bucket_alert_lambda.function_name}"
+  principal     = "events.amazonaws.com"
+  source_arn    = "${aws_cloudwatch_event_rule.lambda_trigger_rule.arn}"
 }
