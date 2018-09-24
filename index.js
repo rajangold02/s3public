@@ -50,7 +50,7 @@ exports.handler = (event, context) => {
     
     if (publicPermissions.length != 0) {
         var userDetails = getUserDetails(event);
- notification.Message = 'The following S3 bucket permission has been changed to public ' + publicPermissions.join(' and ') + ' access. \n\n' +   'IAM User Changed the Permission: ' + userDetails.user + (userDetails.agent || '') + '\n' + 'Bucket Name: ' + bucketName + '\n' + 'AWS Account ID: ' + arnNo  ;
+ notification.Message = 'The following S3 bucket permission has been changed to public ' + publicPermissions.join(' and ') + ' access. \n\n' +   'IAM User Changed the Permission: ' + userIdentity.userName + (userDetails.agent || '') + '\n' + 'Bucket Name: ' + bucketName + '\n' + 'AWS Account ID: ' + arnNo  ;
  console.log(notification.Message);
         snooze.publish(notification, function(err, data) {
             if (err) console.log(err, err.stack);
